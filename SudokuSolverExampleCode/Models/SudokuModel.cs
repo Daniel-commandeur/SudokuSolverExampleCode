@@ -9,6 +9,6 @@ namespace SudokuSolverExampleCode.Models
         public int SudokuId { get; set; }
         public string Name { get; set; }
         public int[][] Cells { get; set; }
-
+        public Coordinate Coord { get; set; }
     }
 }

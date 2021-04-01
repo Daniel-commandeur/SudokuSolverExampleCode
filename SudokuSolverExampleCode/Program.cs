@@ -8,14 +8,12 @@ namespace SudokuSolverExampleCode
     {
         static void Main(string[] args)
         {
-            //ShowModulus();
             List<SudokuModel> listSudokus = (List<SudokuModel>)SudokuData.GetMockData();
-            PrintSudoku(listSudokus.Find(s => s.SudokuId.Equals(0)).Cells);
-            Console.ReadKey();
-            Console.Clear();
+            var sudoku = listSudokus.Find(s => s.SudokuId.Equals(2));
+
             Solver solver = new Solver();
-            solver.SolveLogical(listSudokus.Find(s => s.SudokuId.Equals(0)));
-            PrintSudoku(listSudokus.Find(s => s.SudokuId.Equals(0)).Cells);
+            solver.SolveGuessing(sudoku);
+            PrintSudoku(sudoku.Cells);
             Console.ReadKey();
         }
 
@@ -59,7 +57,14 @@ namespace SudokuSolverExampleCode
                 Console.Write(verLine);
                 for (int j = 0; j < cells[i].Length; j++)
                 {
-                    Console.Write($"{cells[i][j]} ");
+                    if (cells[i][j] != 0)
+                    {
+                        Console.Write($"{cells[i][j]} ");
+                    }
+                    else
+                    {
+                        Console.Write("  ");
+                    }
                     if (j % 3 == 2)
                     {
                         Console.Write(verLine);

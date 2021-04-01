@@ -1,12 +1,18 @@
 ﻿using SudokuSolverExampleCode.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace SudokuSolverExampleCode
 {
     public class Solver
     {
+        private List<int> GetAllNumbers 
+        { 
+            get { return Enumerable.Range(1, 9).ToList(); } 
+        }
+
         public void SolveLogical(SudokuModel sudokuModel)
         {
             PlaceNumbers(sudokuModel.Cells);
@@ -14,16 +20,83 @@ namespace SudokuSolverExampleCode
 
         public void SolveGuessing(SudokuModel sudokuModel)
         {
+            PlaceNumbers(sudokuModel.Cells);
+
+            SudokuBackupModel backup = new SudokuBackupModel
+            {
+                BackupCells = CopyArray(sudokuModel.Cells)
+            };
+
             while (!CheckIfSolved(sudokuModel.Cells))
             {
-                PlaceNumbers(sudokuModel.Cells);
-                sudokuModel.Cells = GuessANumber(sudokuModel.Cells);
+                while (!CheckIfStuck(sudokuModel.Cells))
+                {
+                    sudokuModel.Cells = GuessANumber(sudokuModel);
+                    //Program.PrintSudoku(sudokuModel.Cells);
+                    sudokuModel.Cells = PlaceNumbers(sudokuModel.Cells);
+                    if (CheckIfSolved(sudokuModel.Cells))
+                    {
+                        return;
+                    }
+                }
+                sudokuModel.Cells = CopyArray(backup.BackupCells);
             }
+
         }
 
-        private int[][] GuessANumber(int[][] cells)
+        private int[][] GuessANumber(SudokuModel sudokuModel)
         {
-            throw new NotImplementedException();
+            var rnd = new Random();
+
+            for (int i = 2; i < 10;)
+            {
+                sudokuModel.Coord = FindLocation(sudokuModel.Cells, sudokuModel.Coord);
+                List<int> possibleNumbers = Numberchecker(sudokuModel.Cells, sudokuModel.Coord);
+
+                if (possibleNumbers.Count == i)
+                {
+                    sudokuModel.Cells[sudokuModel.Coord.Row][sudokuModel.Coord.Col] = possibleNumbers[rnd.Next(possibleNumbers.Count)];
+
+                    return sudokuModel.Cells;
+                }
+                else
+                {
+                    sudokuModel.Coord = NextCoordinate(sudokuModel.Coord);
+
+                    if (sudokuModel.Coord.Row == 0 && sudokuModel.Coord.Col == 0)
+                    {
+                        i++;
+                    }
+                }
+            }
+            return sudokuModel.Cells;
+        }
+
+        private Coordinate NextCoordinate(Coordinate coord)
+        {
+            coord.Col = (coord.Col + 1) % 9;
+            if (coord.Col == 0)
+            {
+                coord.Row = (coord.Row + 1) % 9;
+            }
+            return coord;
+        }
+
+        private Coordinate FindLocation(int[][] cells, Coordinate coord)
+        {
+            for (int row = coord.Row; row < 9; row++)
+            {
+                for (int col = coord.Col; col < 9; col++)
+                {
+                    if (cells[row][col] == 0)
+                    {
+                        coord.Row = row;
+                        coord.Col = col;
+                        return coord;
+                    }
+                }
+            }
+            return coord;
         }
 
         private int[][] PlaceNumbers(int[][] sudokuCells)
@@ -39,15 +112,13 @@ namespace SudokuSolverExampleCode
                     {
                         if (sudokuCells[row][col] == 0)
                         {
-                            //List<int> numberlist = Enumerable.Range(1, 9).ToList();
-                            List<int> numberlist = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-
-                            numberlist = numberchecker(sudokuCells, row, col, numberlist);
+                            List<int> numberlist = Numberchecker(sudokuCells, new Coordinate {Row = row, Col = col });
 
                             if (numberlist.Count == 1)
                             {
                                 sudokuCells[row][col] = numberlist[0];
                                 placed = true;
+                                //Program.PrintSudoku(sudokuCells);
                                 break;
                             }
                         }
@@ -62,23 +133,24 @@ namespace SudokuSolverExampleCode
             return sudokuCells;
         }
 
-        private List<int> numberchecker(int[][] sudokuCells, int row, int colum, List<int> numberlist)
+        private List<int> Numberchecker(int[][] sudokuCells, Coordinate coord)
         {
-            int corda = row - row % 3;
-            int cordb = colum - colum % 3;
+            List<int> numberlist = GetAllNumbers;
+            int corda = coord.Row - coord.Row % 3;
+            int cordb = coord.Col - coord.Col % 3;
 
             for (int tempcolum = 0; tempcolum < 9; tempcolum++)
             {
-                if (numberlist.Contains(sudokuCells[row][tempcolum]))
+                if (numberlist.Contains(sudokuCells[coord.Row][tempcolum]))
                 {
-                    numberlist.Remove(sudokuCells[row][tempcolum]);
+                    numberlist.Remove(sudokuCells[coord.Row][tempcolum]);
                 }
             }
             for (int tempRow = 0; tempRow < 9; tempRow++)
             {
-                if (numberlist.Contains(sudokuCells[tempRow][colum]))
+                if (numberlist.Contains(sudokuCells[tempRow][coord.Col]))
                 {
-                    numberlist.Remove(sudokuCells[tempRow][colum]);
+                    numberlist.Remove(sudokuCells[tempRow][coord.Col]);
                 }
             }
             for (int i = corda; i < corda + 3; i++)
@@ -108,5 +180,30 @@ namespace SudokuSolverExampleCode
             }
             return true;
         }
+
+        private bool CheckIfStuck(int[][] sudoku)
+        {
+            for (int row = 0; row < 9; row++)
+            {
+                for (int col = 0; col < 9; col++)
+                {
+                    if (sudoku[row][col] == 0)
+                    {
+                        List<int> numberlist = Numberchecker(sudoku, new Coordinate { Row = row, Col = col });
+                        if (numberlist.Count == 0)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        private int[][] CopyArray(int[][] source)
+        {
+            return source.Select(s => s.ToArray()).ToArray();
+        }
+
     }
 }
